@@ -1,0 +1,191 @@
+@import 'swiper/css';
+/* @import 'swiper/css/autoplay'; */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* ApplyWizz Design System - Exact colors from screenshots */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Blue primary from screenshots */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 60%;
+
+    --radius: 1rem;
+
+    /* ApplyWizz specific colors */
+    --brand-green: 142 69% 58%;
+    --brand-blue: 217 91% 60%;
+    --verified-green: 142 69% 58%;
+    --trust-badge: 217 91% 60%;
+    
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--brand-blue)), hsl(var(--brand-green)));
+    --gradient-cta: linear-gradient(135deg, hsl(var(--brand-blue)), hsl(var(--brand-green)));
+    
+    /* Shadows */
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-mentor-card: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217 91% 60%;
+    
+    --brand-green: 142 69% 58%;
+    --brand-blue: 217 91% 60%;
+    --verified-green: 142 69% 58%;
+    --trust-badge: 217 91% 60%;
+    
+    --gradient-hero: linear-gradient(135deg, hsl(var(--brand-blue)), hsl(var(--brand-green)));
+    --gradient-cta: linear-gradient(135deg, hsl(var(--brand-blue)), hsl(var(--brand-green)));
+    
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-mentor-card: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+/* === ApplyWizz Premium Layer (non-breaking) === */
+@layer base {
+  html { @apply antialiased scroll-smooth; }
+  body { @apply bg-white text-neutral-900; }
+  ::selection { @apply bg-neutral-900 text-white; }
+}
+
+/* Cards & panels */
+@layer components {
+  /* Soft elevated card (use on most cards) */
+  .aw-card {
+    @apply rounded-2xl border border-black/5 bg-white shadow-[0_12px_30px_-20px_rgba(0,0,0,0.35)];
+  }
+
+  /* Glassy panel (good for CTAs/sections) */
+  .aw-panel {
+    @apply rounded-xl border border-black/10 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60;
+  }
+
+  /* Subtle hover lift */
+  .aw-hover {
+    @apply transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_45px_-30px_rgba(0,0,0,0.35)];
+  }
+
+  /* Tiny press feedback for buttons/cards */
+  .aw-press {
+    @apply active:scale-[.98];
+  }
+
+  /* Primary button look from the screenshot (black pill) */
+  .aw-btn {
+    @apply inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium leading-none
+           transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/30 ring-offset-2 ring-offset-white;
+  }
+  .aw-btn-primary {
+    @apply aw-btn bg-neutral-900 text-white hover:bg-neutral-800 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.6)];
+  }
+  .aw-btn-secondary {
+    @apply aw-btn bg-neutral-100 text-neutral-900 hover:bg-neutral-200;
+  }
+
+  /* Small pill badge used in the screenshot style */
+  .aw-badge {
+    @apply inline-flex items-center rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium text-neutral-700;
+  }
+
+  /* Section container width */
+  .aw-container {
+    @apply mx-auto w-full max-w-6xl px-4;
+  }
+}
+
+/* Nicer scrollbars (Chromium) — safe, optional */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 9999px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
