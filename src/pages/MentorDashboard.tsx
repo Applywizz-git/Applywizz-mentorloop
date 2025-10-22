@@ -957,6 +957,7 @@ const handleWithdrawSubmit = async () => {
               </TabsContent>
 
               {/* Past */}
+{/* Past */}
 <TabsContent value="past" className="px-2 sm:px-0">
   <Card>
     <CardHeader className="px-4 sm:px-6">
@@ -986,8 +987,8 @@ const handleWithdrawSubmit = async () => {
                 <div key={b.id} className="p-4 border border-border rounded-lg space-y-3">
                   {/* Session details */}
                   <div className="text-sm mt-1">
-  💰 <span className="font-medium">Session Amount:</span> ${b.session_amount ?? 0}
-</div>
+                    💰 <span className="font-medium">Session Amount:</span> ${b.session_amount ?? 0}
+                  </div>
 
                   <div className="flex items-center justify-between">
                     <div>
@@ -1038,7 +1039,7 @@ const handleWithdrawSubmit = async () => {
                     </Button>
                   </div>
 
-                  {/* Withdraw Earnings Button */}
+                  {/* Withdraw Earnings Button - ONLY in Past Sessions */}
                   <Button
                     onClick={() => {
                       setSelectedBooking(b); // Pass the session to the withdrawal form
@@ -1055,64 +1056,62 @@ const handleWithdrawSubmit = async () => {
       )}
     </CardContent>
   </Card>
-</TabsContent>
-{/* Withdrawal Dialog */}
-<Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
-  <DialogTrigger asChild>
-    <Button variant="outline">Withdraw Earnings</Button>
-  </DialogTrigger>
-  <DialogContent aria-describedby={undefined}>
-    <DialogHeader>
-      <DialogTitle>Enter Bank Details for Withdrawal</DialogTitle>
-    </DialogHeader>
-    {selectedBooking && (
-  <div className="mb-2 text-sm text-muted-foreground">
-    Withdrawing for session amount: <span className="font-semibold">${selectedBooking.session_amount ?? 0}</span>
-  </div>
-)}
 
-    <div className="space-y-4">
-      <div>
-        <Label>Bank Name</Label>
-        <Input 
-          value={bankDetails.bank_name} 
-          onChange={(e) => setBankDetails({ ...bankDetails, bank_name: e.target.value })} 
-        />
+  {/* Withdrawal Dialog - MOVED INSIDE Past Sessions Tab */}
+  <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
+    <DialogContent aria-describedby={undefined}>
+      <DialogHeader>
+        <DialogTitle>Enter Bank Details for Withdrawal</DialogTitle>
+      </DialogHeader>
+      {selectedBooking && (
+        <div className="mb-2 text-sm text-muted-foreground">
+          Withdrawing for session amount: <span className="font-semibold">${selectedBooking.session_amount ?? 0}</span>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <div>
+          <Label>Bank Name</Label>
+          <Input 
+            value={bankDetails.bank_name} 
+            onChange={(e) => setBankDetails({ ...bankDetails, bank_name: e.target.value })} 
+          />
+        </div>
+        <div>
+          <Label>Account Number</Label>
+          <Input 
+            type="text" 
+            value={bankDetails.account_number} 
+            onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })} 
+          />
+        </div>
+        <div>
+          <Label>Confirm Account Number</Label>
+          <Input 
+            type="text" 
+            value={bankDetails.confirm_account_number} 
+            onChange={(e) => setBankDetails({ ...bankDetails, confirm_account_number: e.target.value })} 
+          />
+        </div>
+        <div>
+          <Label>IFSC Code</Label>
+          <Input 
+            value={bankDetails.ifsc_code} 
+            onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value })} 
+          />
+        </div>
+        <div>
+          <Label>Branch</Label>
+          <Input 
+            value={bankDetails.branch} 
+            onChange={(e) => setBankDetails({ ...bankDetails, branch: e.target.value })} 
+          />
+        </div>
+        <Button onClick={handleWithdrawSubmit}>Submit</Button>
       </div>
-      <div>
-        <Label>Account Number</Label>
-        <Input 
-          type="text" 
-          value={bankDetails.account_number} 
-          onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })} 
-        />
-      </div>
-      <div>
-        <Label>Confirm Account Number</Label>
-        <Input 
-          type="text" 
-          value={bankDetails.confirm_account_number} 
-          onChange={(e) => setBankDetails({ ...bankDetails, confirm_account_number: e.target.value })} 
-        />
-      </div>
-      <div>
-        <Label>IFSC Code</Label>
-        <Input 
-          value={bankDetails.ifsc_code} 
-          onChange={(e) => setBankDetails({ ...bankDetails, ifsc_code: e.target.value })} 
-        />
-      </div>
-      <div>
-        <Label>Branch</Label>
-        <Input 
-          value={bankDetails.branch} 
-          onChange={(e) => setBankDetails({ ...bankDetails, branch: e.target.value })} 
-        />
-      </div>
-      <Button onClick={handleWithdrawSubmit}>Submit</Button>
-    </div>
-  </DialogContent>
-</Dialog>
+    </DialogContent>
+  </Dialog>
+</TabsContent>
 
               {/* Profile */}
               <TabsContent value="profile" className="px-2 sm:px-0">
@@ -1352,15 +1351,7 @@ const handleWithdrawSubmit = async () => {
         </div>
       </div>
 
-      {/* Withdraw Earnings Button */}
-      <div className="mt-6">
-        <Button 
-          onClick={() => setWithdrawDialogOpen(true)}
-          className="w-full sm:w-auto"
-        >
-          Withdraw Earnings
-        </Button>
-      </div>
+     
     </CardContent>
   </Card>
 </TabsContent>
