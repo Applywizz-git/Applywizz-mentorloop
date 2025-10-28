@@ -15,32 +15,152 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/autoplay";
+
 const Landing = () => {
   const [data, setData]= useState("");
+  const [mentors, setMentors] = useState<any[]>([]);
+   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    seedDemoData();
-  }, []);
-
-  // useEffect(() => {
-  //   const checkSupabaseConnection = async () => {
-  //     try {
-  //       const { data, error } = await supabase.from('profiles').select('*');
-  //       if (error) {
-  //         console.error("Supabase connection error:", error);
-  //       } else {
-  //         console.log("Supabase connection successful:", data);
-  //         setData(JSON.stringify(data));
-  //       }
-  //     } catch (err) {
-  //       console.error("Unexpected error while connecting to Supabase:", err);
-  //     }
-  //   };
+const normalizeMentorData = (profiles: any[]) => {
+  return profiles.map(profile => {
+    console.log("📊 Raw profile data for normalization:", profile);
     
-  //   checkSupabaseConnection();
-  // }, []);
+    // Use mentor_id for navigation, profile id for display
+    const displayId = profile.id;
+    const navigationId = profile.mentor_id || profile.id; // Prefer mentor_id for navigation
+    
+    const name = profile.name || "Industry Mentor";
+    const title = profile.title || "Industry Expert";
+    
+    let experience = 0;
+    if (typeof profile.experience === 'string') {
+      experience = parseInt(profile.experience) || 0;
+    } else {
+      experience = profile.experience || 0;
+    }
+    
+    const rating = Number(profile.rating) || 0;
+    
+    // Handle specialties
+    let specialties: string[] = [];
+    if (profile.specialties) {
+      try {
+        if (Array.isArray(profile.specialties)) {
+          specialties = profile.specialties;
+        } else if (typeof profile.specialties === 'string') {
+          let cleanString = profile.specialties
+            .replace(/^\["\["/, '["')
+            .replace(/\"\]"\]$/, '"]')
+            .replace(/\\"/g, '"')
+            .replace(/"\[/g, '[')
+            .replace(/\]"/g, ']');
+          
+          try {
+            const parsed = JSON.parse(cleanString);
+            specialties = Array.isArray(parsed) ? parsed : [profile.specialties];
+          } catch {
+            specialties = profile.specialties.split(',').map((s: string) => 
+              s.replace(/[\[\]"]/g, '').trim()
+            ).filter(s => s !== "");
+          }
+        }
+      } catch (e) {
+        console.warn("Error parsing specialties:", e);
+        specialties = ["Career Guidance"];
+      }
+    }
+    
+    if (specialties.length === 0) {
+      specialties = [title, "Mentorship"].filter(Boolean);
+    }
+    
+    const company = profile.company || "Industry Expert";
+    const avatar = profile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0F1F3D&color=fff&size=128&bold=true`;
+    
+    const normalizedMentor = {
+      id: displayId, // Use profile id for React keys
+      mentor_id: navigationId, // Use mentor_id for navigation
+      name: name,
+      title: title,
+      company: company,
+      avatar: avatar,
+      experience: experience,
+      rating: rating,
+      specialties: specialties,
+      session_amount: Number(profile.price) || 0,
+      reviews: 0,
+      availability: "medium",
+      languages: ['English'],
+      _has_mentor_id: !!profile.mentor_id // For debugging
+    };
+    
+    console.log("🔄 Normalized mentor:", normalizedMentor);
+    return normalizedMentor;
+  });
+};
+// Fetch approved mentors for the landing page from profiles table
+useEffect(() => {
+  const fetchMentors = async () => {
+    try {
+      setIsLoading(true);
+      console.log("🔍 Fetching mentors from PROFILES table...");
+      
+      // Fetch mentors from profiles table where role is 'mentor'
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          user_id,
+          name,
+          email,
+          role,
+          avatar,
+          title,
+          company,
+          experience,
+          rating,
+          bio,
+          verified,
+          price,
+          specialties,
+          timezone,
+          created_at,
+          updated_at,
+          phone,
+          is_admin,
+          resume_path,
+          mentor_id
+        `)
+        .eq("role", "mentor") // Only get mentors
+        .order('created_at', { ascending: false })
+        .limit(8);
 
+      if (error) {
+        console.error("❌ Error fetching mentors from profiles:", error);
+      } else {
+        console.log("✅ MENTORS FROM PROFILES TABLE:", data);
+        console.log(`🎯 Total mentors found: ${data?.length || 0}`);
+        
+        if (data && data.length > 0) {
+          const normalizedMentors = normalizeMentorData(data);
+          console.log("🔄 Normalized mentors:", normalizedMentors);
+          setMentors(normalizedMentors);
+        } else {
+          console.log("⚠️ No mentors found in profiles table");
+          setMentors([]);
+        }
+      }
+    } catch (err) {
+      console.error("❌ Unexpected error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  fetchMentors();
+}, []);
+
+  // Rest of your existing code (trustStats, howItWorksSteps, etc.) remains the same...
   const trustStats = [
     { icon: CheckCircle, label: "100% Verified Mentors", color: "text-verified-green" },
     { icon: Users, label: "2,000+ Sessions Completed", color: "text-trust-badge" },
@@ -91,36 +211,30 @@ const Landing = () => {
     }
   ];
 
-  const featuredMentors = [
-    {
-      name: "Sarah Chen",
-      title: "Senior Product Manager",
-      company: "Meta",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b5c8?w=400&h=400&fit=crop&crop=face",
-      rating: 4.9,
-      reviews: 47,
-      specialties: ["Product Strategy", "Career Growth", "Leadership"]
-    },
-    {
-      name: "David Rodriguez", 
-      title: "Lead Software Engineer",
-      company: "Google",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
-      rating: 5.0,
-      reviews: 32,
-      specialties: ["System Design", "Technical Interviews", "ML"]
-    },
-    {
-      name: "Emily Watson",
-      title: "VP of Marketing", 
-      company: "Stripe",
-      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop&crop=face",
-      rating: 4.8,
-      reviews: 63,
-      specialties: ["Growth Marketing", "Brand Strategy", "Team Management"]
-    }
-  ];
+  // Helper function to get initials for avatar fallback
+  const getInitials = (name: string) => {
+    if (!name) return "M";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  };
 
+// Helper function to get avatar URL with fallback
+const getAvatarUrl = (mentor: any) => {
+  // Use the avatar from profile if available
+  if (mentor.avatar && mentor.avatar.trim() !== "") {
+    return mentor.avatar;
+  }
+  // Fallback to UI avatars
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(mentor.name)}&background=0F1F3D&color=fff&size=128&bold=true`;
+};
+
+// Improved image error handler
+const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, mentor: any) => {
+  const target = e.target as HTMLImageElement;
+  const name = mentor.name || "Mentor";
+  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0F1F3D&color=fff&size=128&bold=true`;
+};
   return (
     <div className="min-h-screen bg-background">
        
@@ -409,127 +523,172 @@ const Landing = () => {
 
 <section className="px-6 py-20 bg-[#F9FBFF]">
   <div className="max-w-6xl mx-auto text-center mb-12">
-    <h2 className="text-4xl font-bold mb-4 text-foreground">
-      Meet Our Verified Mentors
-    </h2>
-    <p className="text-xl text-muted-foreground">
-      Industry leaders ready to help you advance your career
-    </p>
+    <Reveal dir="up">
+      <h2 className="text-4xl font-bold mb-4 text-foreground">
+        Meet Our Verified Mentors
+      </h2>
+      <p className="text-xl text-muted-foreground">
+        Industry leaders ready to help you advance your career
+      </p>
+    </Reveal>
   </div>
 
-  <Swiper
-    modules={[Autoplay]}
-    autoplay={{
-      delay: 2500, // 2.5s between slides
-      disableOnInteraction: false,
-    }}
-    loop={true}
-    slidesPerView={1}          // show one card at a time
-    spaceBetween={20}
-    breakpoints={{
-      640: { slidesPerView: 2 }, // tablet: show 2 cards
-      1024: { slidesPerView: 3 } // desktop: show 3 cards
-    }}
-    className="max-w-6xl mx-auto"
-  >
-    {[
-      {
-        name: "Shishir Chandra",
-        title: "Engineering lead",
-        experience: "16 Years of Experience",
-        company: "Google",
-        avatar: "https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=400&h=400&fit=crop&crop=face",
-        rating: 4.9,
-      },
-      {
-        name: "Anarghya Kini",
-        title: "Tools and Automation Engineer",
-        experience: "8 Years of Experience",
-        company: "Apple",
-        avatar: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=400&h=400&fit=crop&crop=face",
-        rating: 5.0,
-      },
-      {
-        name: "Manish Pushkar",
-        title: "Software Engineer 2",
-        experience: "8 Years of Experience",
-        company: "PayPal",
-        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face",
-        rating: 5.0,
-      },
-      {
-        name: "Amandeep Srivastava",
-        title: "Senior Software Engineer",
-        experience: "10 Years of Experience",
-        company: "Amazon",
-        avatar: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=400&fit=crop&crop=face",
-        rating: 5.0,
-      },
-    ].map((mentor, index) => (
-      <SwiperSlide key={index}>
-        <div className="relative bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between h-full">
-          {/* Rating */}
-          <div className="absolute top-4 right-4 flex items-center text-yellow-500 font-semibold">
-            <span className="mr-1">⭐</span>
-            {mentor.rating}
-          </div>
-
-          {/* Avatar */}
-          <div className="flex items-center mb-4">
-            <img
-              src={mentor.avatar}
-              alt={mentor.name}
-              className="w-16 h-16 rounded-full object-cover mr-4"
-            />
-            <div>
-              <h3 className="font-semibold text-lg text-foreground">
-                {mentor.name}
-              </h3>
-              <p className="text-sm text-muted-foreground">{mentor.title}</p>
-              <p className="text-sm text-muted-foreground">
-                {mentor.experience}
-              </p>
+  {!isLoading && mentors.length > 0 ? (
+    <Swiper
+      modules={[Autoplay]}
+      autoplay={{
+        delay: 2500,
+        disableOnInteraction: false,
+      }}
+      loop={mentors.length > 1}
+      slidesPerView={1}
+      spaceBetween={20}
+      breakpoints={{
+        640: { slidesPerView: mentors.length >= 2 ? 2 : 1 },
+        1024: { slidesPerView: mentors.length >= 3 ? 3 : mentors.length >= 2 ? 2 : 1 }
+      }}
+      className="max-w-6xl mx-auto"
+    >
+      {mentors.map((mentor, index) => (
+        <SwiperSlide key={mentor.id}>
+          <div className="relative bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between h-full">
+            {/* Rating */}
+            <div className="absolute top-4 right-4 flex items-center text-yellow-500 font-semibold">
+              <span className="mr-1">⭐</span>
+              {mentor.rating > 0 ? mentor.rating.toFixed(1) : "New"}
             </div>
-          </div>
 
-          {/* Company */}
-          <p className="text-sm text-muted-foreground mb-4">{mentor.company}</p>
+            {/* Avatar & Info */}
+            <div className="flex items-center mb-4">
+              <img
+                src={getAvatarUrl(mentor)}
+                alt={mentor.name}
+                className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-gray-100"
+                onError={(e) => handleImageError(e, mentor)}
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-lg text-foreground truncate">
+                  {mentor.name}
+                </h3>
+                <p className="text-sm text-muted-foreground truncate">
+                  {mentor.title}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {mentor.experience} Years of Experience
+                </p>
+              </div>
+            </div>
+
+            {/* Company */}
+            <p className="text-sm text-muted-foreground mb-4 truncate">
+              {mentor.company}
+            </p>
+
+            {/* Specialties */}
+            {mentor.specialties && mentor.specialties.length > 0 && (
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-1">
+                  {mentor.specialties.slice(0, 3).map((specialty: string, idx: number) => (
+                    <span 
+                      key={idx}
+                      className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 truncate max-w-[120px]"
+                      title={specialty}
+                    >
+                      {specialty.length > 15 ? specialty.substring(0, 15) + '...' : specialty}
+                    </span>
+                  ))}
+                  {mentor.specialties.length > 3 && (
+                    <span 
+                      className="text-xs px-2 py-1 rounded-full bg-gray-50 text-gray-600"
+                      title={mentor.specialties.slice(3).join(', ')}
+                    >
+                      +{mentor.specialties.length - 3} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Reviews count if available */}
+            {mentor.reviews > 0 && (
+              <div className="text-xs text-gray-500 mb-2">
+                {mentor.reviews} review{mentor.reviews !== 1 ? 's' : ''}
+              </div>
+            )}
 
           {/* CTA */}
-          <button
-            onClick={() => navigate("/mentors")}
-            className="w-full bg-black text-white text-sm font-medium rounded-md py-2 mt-auto hover:bg-black/90 transition-colors duration-200"
-          >
-            View Profile →
-          </button>
-        </div>
-      </SwiperSlide>
-      
-    ))}
-  </Swiper>
-    <div className="text-center mt-10">
-    <button
-      onClick={() => navigate("/mentors")}
-      className="relative overflow-hidden aw-btn-primary text-base px-8 py-3 group"
-    >
-      {/* Continuous shiny sweep animation */}
-      <span className="absolute inset-0 overflow-hidden">
-        <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine"></span>
-      </span>
-
-      <span className="relative inline-flex items-center gap-2">
-        View All Mentors
-       <span
-  className="inline-block transform transition-transform duration-300 ease-&lsqb;cubic-bezier(0.25,0.1,0.25,1)&rsqb; group-hover:translate-x-2"
+<button
+  onClick={() => {
+    // Use mentor_id for navigation if available
+    const mentorId = mentor.mentor_id || mentor.id;
+    console.log("🔗 Navigating to mentor:", { 
+      profileId: mentor.id, 
+      mentorId: mentor.mentor_id,
+      navigatingTo: mentorId 
+    });
+    navigate(`/mentor/${mentorId}`);
+  }}
+  className="w-full bg-black text-white text-sm font-medium rounded-md py-2 mt-auto hover:bg-black/90 transition-colors duration-200"
 >
-  →
-</span>
+  View Profile →
+</button>
+          </div>
+        </SwiperSlide>
+      ))}
+    </Swiper>
+  ) : isLoading ? (
+    // Loading state
+    <div className="max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[1, 2, 3].map((item) => (
+          <div key={item} className="bg-white border border-gray-200 rounded-2xl p-6 animate-pulse">
+            <div className="flex items-center mb-4">
+              <div className="w-16 h-16 bg-gray-200 rounded-full mr-4"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3 mt-1"></div>
+              </div>
+            </div>
+            <div className="h-3 bg-gray-200 rounded w-2/3 mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : (
+    // Empty state
+    <div className="max-w-6xl mx-auto text-center py-12">
+      <div className="bg-white border border-gray-200 rounded-2xl p-8">
+        <p className="text-muted-foreground text-lg mb-4">
+          No mentors available at the moment.
+        </p>
+        <p className="text-sm text-gray-500">
+          Check back soon or browse our mentor categories.
+        </p>
+      </div>
+    </div>
+  )}
 
-      </span>
-    </button>
-  </div>
+  <Reveal dir="up" delay={0.15}>
+    <div className="text-center mt-10">
+      <button
+        onClick={() => navigate("/mentors")}
+        className="relative overflow-hidden aw-btn-primary text-base px-8 py-3 group"
+      >
+        <span className="absolute inset-0 overflow-hidden">
+          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine"></span>
+        </span>
+        <span className="relative inline-flex items-center gap-2">
+          View All Mentors
+          <span className="inline-block transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] group-hover:translate-x-2">
+            →
+          </span>
+        </span>
+      </button>
+    </div>
+  </Reveal>
 </section>
-
 
 {/* Domain / Industry Grid Section */}
 <section className="px-6 py-15 bg-white">
