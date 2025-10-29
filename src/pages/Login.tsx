@@ -16,6 +16,7 @@ import logo from "@/assets/applywizz-logo.png";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { consumePostAuthRedirect, consumePostAuthAction } from "@/lib/auth"; // ✅ keep
+import { Loader2 } from "lucide-react";
 
 type LoginProps = {
   initialMode?: "signin" | "signup";
@@ -27,6 +28,9 @@ const Login = ({ initialMode, redirectTo }: LoginProps) => {
   const location = useLocation();
 
   const [mode, setMode] = useState<"signin" | "signup">(initialMode ?? "signin");
+  const [isLoading, setIsLoading] = useState(false);       // ✅ for Sign In button
+const [isCreating, setIsCreating] = useState(false);     // ✅ for Sign Up button
+
 
   // Allow /login?mode=signup to open sign-up directly when not embedded in dialog
   useEffect(() => {
@@ -79,7 +83,7 @@ const Login = ({ initialMode, redirectTo }: LoginProps) => {
     e.preventDefault();
     const email = loginData.email.trim().toLowerCase();
     const password = loginData.password;
-
+      setIsLoading(true);
     try {
       const user = await authenticateUser(email, password);
 
@@ -187,6 +191,9 @@ const Login = ({ initialMode, redirectTo }: LoginProps) => {
         variant: "destructive",
       });
     }
+    finally {
+    setIsLoading(false); // 🟥 STOP loading when done (success or error)
+  }
   };
 const handleSignup = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -195,7 +202,7 @@ const handleSignup = async (e: React.FormEvent) => {
   const role = signupData.role;
   const password = signupData.password;
   const confirm = signupData.confirm;
-
+    setIsCreating(true);
   // Basic checks common to both roles
   if (!/\S+@\S+\.\S+/.test(email)) {
     toast({
@@ -287,6 +294,8 @@ const handleSignup = async (e: React.FormEvent) => {
       description: err?.message || "Please try again.",
       variant: "destructive",
     });
+  }finally {
+    setIsCreating(false); // ✅ STOP loading
   }
 };
 
@@ -339,7 +348,16 @@ const handleSignup = async (e: React.FormEvent) => {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full">Sign In</Button>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+  {isLoading ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
+    </>
+  ) : (
+    "Sign In"
+  )}
+</Button>
+
                 </form>
 
                 <p className="text-center text-sm mt-3">
@@ -421,9 +439,16 @@ const handleSignup = async (e: React.FormEvent) => {
                     </>
                   )}
 
-                  <Button type="submit" className="w-full">
-                    {signupData.role === "mentor" ? "Next" : "Create account"}
-                  </Button>
+                  <Button type="submit" className="w-full" disabled={isCreating}>
+  {isCreating
+    ? signupData.role === "mentor"
+      ? "Processing..."
+      : "Creating account..."
+    : signupData.role === "mentor"
+      ? "Next"
+      : "Create account"}
+</Button>
+
                 </form>
 
                 <p className="text-center text-sm mt-3">
