@@ -554,7 +554,7 @@ const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, ment
           <div className="relative bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between h-full">
             {/* Rating */}
             <div className="absolute top-4 right-4 flex items-center text-yellow-500 font-semibold">
-              <span className="mr-1">⭐</span>
+              <span className="mr-1">⭐</span>  
               {mentor.rating > 0 ? mentor.rating.toFixed(1) : "New"}
             </div>
 
