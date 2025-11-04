@@ -104,7 +104,7 @@ useEffect(() => {
             mentors:mentor_id (
               id,
               applicant_name,
-               amount
+              amount
             )
           `)
           .order("created_at", { ascending: false })
@@ -113,60 +113,95 @@ useEffect(() => {
       setStats(s);
       setMentors(ms);
       setBookings(bs);
+
+      // Debug logging for mentor bookings data
       setTimeout(() => {
-  console.log("🔍 DEBUG - Final mentor bookings data:");
-  ms.forEach(mentor => {
-    const bookingCount = mentor.bookings?.length || 0;
-    const calculatedAmount = (mentor.bookings ?? []).reduce((sum, b) => sum + (b.session_amount ?? 0), 0);
-    console.log(`Mentor ${mentor.name}: ${bookingCount} bookings, amount: ${calculatedAmount}`);
-  });
-}, 100);
+        console.log("🔍 DEBUG - Final mentor bookings data:");
+        ms.forEach(mentor => {
+          const bookingCount = mentor.bookings?.length || 0;
+          const calculatedAmount = (mentor.bookings ?? []).reduce((sum, b) => sum + (b.session_amount ?? 0), 0);
+          console.log(`Mentor ${mentor.name}: ${bookingCount} bookings, amount: ${calculatedAmount}`);
+        });
+      }, 100);
 
       if (bankData.error) throw bankData.error;
-// Create one row per booking
-const earningsRows = bs
-  .filter(b => b.status !== "cancelled")
-  .map((booking) => {
-    const mentor = ms.find(m => m.id === booking.mentorId);
-    const perSessionAmount = mentor?.amount || booking.session_amount || 0;
-    const platformEarnings = perSessionAmount * 0.3;
 
-    return {
-      booking_id: booking.id, // Add booking_id for unique key
-      mentor_id: booking.mentorId,
-      mentor_name: mentor?.name || "Unknown",
-      client_name: booking.clientName || booking.clientId || "—",
-      mentor_amount: perSessionAmount.toFixed(2), // Per-session price
-      platform_earnings: platformEarnings.toFixed(2), // 30% of per-session
-    };
-  });
+      // Create one row per booking for earnings
+      const earningsRows = bs
+        .filter(b => b.status !== "cancelled")
+        .map((booking) => {
+          const mentor = ms.find(m => m.id === booking.mentorId);
+          const perSessionAmount = mentor?.amount || booking.session_amount || 0;
+          const platformEarnings = perSessionAmount * 0.3;
 
-setEarningsRows(earningsRows);
-  // ✅ Only this line
+          return {
+            booking_id: booking.id, // Add booking_id for unique key
+            mentor_id: booking.mentorId,
+            mentor_name: mentor?.name || "Unknown",
+            client_name: booking.clientName || booking.clientId || "—",
+            mentor_amount: perSessionAmount.toFixed(2), // Per-session price
+            platform_earnings: platformEarnings.toFixed(2), // 30% of per-session
+          };
+        });
 
+      setEarningsRows(earningsRows);
 
-const enhancedBankRows = (bankData.data || []).map((row) => {
-  const mentorRel = Array.isArray(row.mentors) ? row.mentors[0] : row.mentors;
-  const mentorName = mentorRel?.applicant_name ?? "Unknown";
-  
-  // ✅ Get amount directly from the mentor data in the query
-  const perSessionAmount = mentorRel?.amount || 0;
+      // Enhanced bank rows for finance tab
+      const enhancedBankRows = (bankData.data || []).map((row) => {
+        const mentorRel = Array.isArray(row.mentors) ? row.mentors[0] : row.mentors;
+        const mentorName = mentorRel?.applicant_name ?? "Unknown";
+        
+        // Get amount directly from the mentor data in the query
+        const perSessionAmount = mentorRel?.amount || 0;
 
-  console.log("Finance tab data:", {
-    mentor_name: mentorName,
-    mentor_amount: perSessionAmount,
-    mentor_data: mentorRel
-  });
+        console.log("Finance tab data:", {
+          mentor_name: mentorName,
+          mentor_amount: perSessionAmount,
+          mentor_data: mentorRel
+        });
 
-  return {
-    ...row,
-    mentor_name: mentorName,
-    total_session_amount: perSessionAmount, // This should now be 4000.00
-  };
-});
+        return {
+          ...row,
+          mentor_name: mentorName,
+          total_session_amount: perSessionAmount, // This should now be 4000.00
+        };
+      });
 
-setPendingWithdrawals(enhancedBankRows);
+      setPendingWithdrawals(enhancedBankRows);
 
+      // Fetch pending mentor applications from mentors table with correct relationships
+      const { data: apps, error: appsErr } = await supabase
+        .from("mentors")
+        .select(`
+          id,
+          profile_id,
+          user_id,
+          resume_path,
+          application_status,
+          created_at,
+          applicant_name,
+          applicant_email,
+          applicant_phone,
+          specialties,
+          applicant_experience,
+          current_designation,
+          total_experience,
+          experiences,
+          profiles_mentor_id_fkey (id, user_id, name, email, phone, avatar, title, company, experience, rating, bio, specialties, verified, role, timezone)
+        `)
+        .eq("application_status", "pending")
+        .order("created_at", { ascending: false });
+
+      // Debugging log to check the data
+      console.log("Fetched Pending Mentor Applications:", apps);
+
+      if (appsErr) {
+        console.error("Admin mentors query failed:", appsErr);
+        throw appsErr;
+      }
+
+      // Set the pending applications state
+      setPendingApps(apps ?? []);
 
     } catch (e: any) {
       toast({
@@ -178,30 +213,26 @@ setPendingWithdrawals(enhancedBankRows);
   })();
 }, [user?.role, navigate]);
 
-
-
-
-  // Derived lists (approved still comes from mentors list which shows verified/public)
+// Derived lists (approved still comes from mentors list which shows verified/public)
 const pendingMentors = useMemo(
   () =>
     mentors.filter(
-      (m: any) =>
-        m.status === "pending" || m.status === "pending_approval" // Only include pending or pending_approval statuses
+      (m: any) => (m as any).status === "pending" || (m as any).status === "pending_approval"
     ),
   [mentors]
 );
 
+const approvedMentors = useMemo(
+  () =>
+    mentors.filter(
+      (m: any) =>
+        (m as any).status === "approved" ||
+        (m as any).status === "active" ||
+        (m as any).verified === true
+    ),
+  [mentors]
+);
 
-  const approvedMentors = useMemo(
-    () =>
-      mentors.filter(
-        (m: any) =>
-          (m as any).status === "approved" ||
-          (m as any).status === "active" ||
-          (m as any).verified === true
-      ),
-    [mentors]
-  );
 const refresh = async () => {
   try {
     // Re-fetch the mentors, stats, and bookings
@@ -210,6 +241,7 @@ const refresh = async () => {
     setStats(s);
     setBookings(bs);
 
+    // ✅ Re-fetch pending mentor applications after approval/rejection
     const { data: apps, error: appsErr } = await supabase
       .from("mentors")
       .select(`
@@ -227,15 +259,15 @@ const refresh = async () => {
         current_designation,
         total_experience,
         experiences,
-        profiles:profiles!mentors_profile_id_fkey (
+        profiles!fk_mentor_id (
           id, user_id, name, email, phone, avatar, title, company, experience, rating, bio, specialties, verified, role, timezone
         )
       `)
-      .eq("application_status", "pending") // Fetch only pending applications
+      .eq("application_status", "pending")
       .order("created_at", { ascending: false });
 
     if (appsErr) throw appsErr;
-    setPendingApps(apps ?? []); // Set the pending mentor applications
+    setPendingApps(apps ?? []);
   } catch (e: any) {
     toast({
       title: "Refresh failed",
@@ -244,8 +276,6 @@ const refresh = async () => {
     });
   }
 };
-
-
 
   // Existing mentor approve by mentorId (kept)
   const handleApproveMentor = async (mentorId: string) => {
