@@ -182,13 +182,15 @@ setPendingWithdrawals(enhancedBankRows);
 
 
   // Derived lists (approved still comes from mentors list which shows verified/public)
-  const pendingMentors = useMemo(
-    () =>
-      mentors.filter(
-        (m: any) => (m as any).status === "pending" || (m as any).status === "pending_approval"
-      ),
-    [mentors]
-  );
+const pendingMentors = useMemo(
+  () =>
+    mentors.filter(
+      (m: any) =>
+        m.status === "pending" || m.status === "pending_approval" // Only include pending or pending_approval statuses
+    ),
+  [mentors]
+);
+
 
   const approvedMentors = useMemo(
     () =>
@@ -200,50 +202,49 @@ setPendingWithdrawals(enhancedBankRows);
       ),
     [mentors]
   );
+const refresh = async () => {
+  try {
+    // Re-fetch the mentors, stats, and bookings
+    const [ms, s, bs] = await Promise.all([listMentors(), getAdminStats(), listBookings()]);
+    setMentors(ms);
+    setStats(s);
+    setBookings(bs);
 
-  const refresh = async () => {
-    try {
-      // Re-fetch the mentors, stats, and bookings
-      const [ms, s, bs] = await Promise.all([listMentors(), getAdminStats(), listBookings()]);
-      setMentors(ms);
-      setStats(s);
-      setBookings(bs);
+    const { data: apps, error: appsErr } = await supabase
+      .from("mentors")
+      .select(`
+        id,
+        profile_id,
+        user_id,
+        resume_url,
+        application_status,
+        created_at,
+        applicant_name,
+        applicant_email,
+        applicant_phone,
+        specialties,
+        applicant_experience,
+        current_designation,
+        total_experience,
+        experiences,
+        profiles:profiles!mentors_profile_id_fkey (
+          id, user_id, name, email, phone, avatar, title, company, experience, rating, bio, specialties, verified, role, timezone
+        )
+      `)
+      .eq("application_status", "pending") // Fetch only pending applications
+      .order("created_at", { ascending: false });
 
-      const { data: apps, error: appsErr } = await supabase
-        .from("mentors")
-        .select(`
-    id,
-    profile_id,
-    user_id,
-    resume_url,
-    application_status,
-    created_at,
-    applicant_name,
-    applicant_email,
-    applicant_phone,
-    specialties,
-    applicant_experience,
-    current_designation,
-    total_experience,
-    experiences,
-    profiles:profiles!mentors_profile_id_fkey (
-      id, user_id, name, email, phone, avatar, title, company, experience, rating, bio, specialties, verified, role, timezone
-    )
-  `)
-        .eq("application_status", "pending")
-        .order("created_at", { ascending: false });
+    if (appsErr) throw appsErr;
+    setPendingApps(apps ?? []); // Set the pending mentor applications
+  } catch (e: any) {
+    toast({
+      title: "Refresh failed",
+      description: e?.message ?? "Try again.",
+      variant: "destructive",
+    });
+  }
+};
 
-
-      if (appsErr) throw appsErr;
-      setPendingApps(apps ?? []);
-    } catch (e: any) {
-      toast({
-        title: "Refresh failed",
-        description: e?.message ?? "Try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
 
   // Existing mentor approve by mentorId (kept)
@@ -931,7 +932,7 @@ const handlePaymentProofUpload = async (rowId: string, mentorId: string) => {
               </TabsList>
 
               {/* PENDING (applications from mentors with optional profile) */}
-              <TabsContent value="pending">
+              {/* <TabsContent value="pending">
                 <Card>
                   <CardHeader>
                     <CardTitle>Pending Mentor Applications</CardTitle>
@@ -1125,7 +1126,177 @@ const handlePaymentProofUpload = async (rowId: string, mentorId: string) => {
                     </Table>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </TabsContent> */}
+
+              <TabsContent value="pending">
+  <Card>
+    <CardHeader>
+      <CardTitle>Pending Mentor Applications</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Mentor</TableHead>
+            <TableHead>Experience</TableHead>
+            <TableHead>Specialties</TableHead>
+            <TableHead>Resume</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {pendingApps.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-sm text-muted-foreground">
+                No pending applications.
+              </TableCell>
+            </TableRow>
+          )}
+
+          {pendingApps.map((app: any) => {
+            // profiles may be an array or a single object
+            const prof = Array.isArray(app.profiles) ? (app.profiles[0] ?? null) : (app.profiles ?? null);
+
+            const clean = (v: any) => (typeof v === "string" ? v.trim() : "");
+            const toNum = (v: any) => {
+              const n = typeof v === "string" ? Number(v.trim()) : Number(v);
+              return Number.isFinite(n) ? n : undefined;
+            };
+
+            // Experiences list (support both column names)
+            const expList: any[] = Array.isArray(app.experiences)
+              ? app.experiences
+              : Array.isArray(app.employment_history)
+                ? app.employment_history
+                : [];
+
+            const sorted = [...expList].sort((a: any, b: any) => {
+              const eA = toNum(a?.end_year) ?? 0;
+              const eB = toNum(b?.end_year) ?? 0;
+              if (eB !== eA) return eB - eA;
+              const sA = toNum(a?.start_year) ?? 0;
+              const sB = toNum(b?.start_year) ?? 0;
+              return sB - sA;
+            });
+            const topExp = sorted[0] || {};
+
+            // Name, Email, Avatar, etc.
+            const name =
+              clean(app.applicant_name) ||
+              clean(app.name) ||
+              clean(prof?.name) ||
+              "Unknown";
+            const email = prof?.email || app.applicant_email || "";
+            const avatar = prof?.avatar || undefined;
+
+            // Designation and Company
+            const designation =
+              clean(prof?.title) ||
+              clean(app.current_designation) ||
+              clean(topExp?.title) ||
+              "—";
+            const company =
+              clean(prof?.company) ||
+              clean(topExp?.company) ||
+              "—";
+
+            // Experience
+            const explicitYears =
+              toNum(app.total_experience) ??
+              toNum(app.experience) ??
+              toNum(app.applicant_experience) ??
+              toNum(prof?.experience);
+
+            let totalYears = explicitYears ?? 0;
+
+            if (!totalYears && sorted.length > 0) {
+              const nowYear = new Date().getFullYear();
+              const derived = sorted.reduce((sum: number, e: any) => {
+                const s = toNum(e?.start_year) ?? nowYear;
+                const ed = toNum(e?.end_year) ?? nowYear;
+                const span = Math.max(0, ed - s);
+                return sum + span;
+              }, 0);
+              totalYears = derived || 0;
+            }
+
+            // Specialties
+            const specialties: string[] =
+              (Array.isArray(prof?.specialties) && prof?.specialties) ||
+              (Array.isArray(app.specialties) && app.specialties) ||
+              [];
+
+            // Resume path
+            const resumeKey = app.resume_path || null;
+
+            return (
+              <TableRow key={app.id}>
+                <TableCell className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={avatar} />
+                    <AvatarFallback>{(name || "M").charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{name}</div>
+                    <div className="text-sm text-muted-foreground">{email}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {designation}
+                      {company && company !== "—" ? ` @ ${company}` : ""}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>{totalYears ?? 0} years</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {specialties.slice(0, 3).map((s: string) => (
+                      <Badge key={s} variant="secondary" className="text-xs">
+                        {s}
+                      </Badge>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {resumeKey ? (
+                    <Button size="sm" variant="outline" onClick={() => handleViewResume(resumeKey)}>
+                      View Resume
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-yellow-600">
+                    Pending
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproveApplication(app)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleRejectApplication(app)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </CardContent>
+  </Card>
+</TabsContent>
+
 
               {/* APPROVED (unchanged: uses mentors list) */}
               <TabsContent value="approved">
