@@ -1391,6 +1391,7 @@ if (insErr) {
         <option value="Java Developer">Java Developer</option>
         <option value="Java Full Stack">Java Full Stack</option>
         <option value="Manufacturing engineer (Mechanical)">Manufacturing engineer (Mechanical)</option>
+        <option value="Machine Learning">Machine Learning</option>
         <option value="Mechanical Engineer">Mechanical Engineer</option>
         <option value="Medical Coding">Medical Coding</option>
         <option value=".Net">.Net</option>
